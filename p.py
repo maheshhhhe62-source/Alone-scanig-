@@ -527,7 +527,7 @@ def check_target_fixed(target, proto, port):
             code = r.status_code
 
             # REAL HTTP VERSION
-            proto_ver = "HTTP/2" if getattr(r, 'http_version', 11) == 20 else "HTTP/1.1"
+            proto_ver = str(r.http_version)
 
             # STATUS TEXT
             status_text = httpx.codes.get_reason_phrase(code)
@@ -553,7 +553,16 @@ def check_target_fixed(target, proto, port):
 
     except Exception:
         return None
-            
+    except Exception as e:
+        return (
+            target,
+            real_ip,
+            0,
+            "ERROR",
+            False,
+            f"ERROR => {clean_target} => {e}"
+        )
+    
     
 def get_port_and_proto():
     console.print("\n[bold magenta]┌───┤ TARGET PORT CONFIGURATION ├───┐[/bold magenta]")
@@ -600,6 +609,7 @@ def scan_targets(targets, proto, port, scan_name="ALONE SCAN", threads=2500):
     )
 
     max_workers = min(threads, 2500, len(targets)//2 + 1000)
+    console.print(f"[green]Workers Running: {max_workers}[/green]")
 
     with open(output_file, "w", encoding="utf-8") as f:
         f.write("=== ALONE VOLT SCANNER v9.9 ULTRA REPORT ===\n")
@@ -644,14 +654,14 @@ def scan_targets(targets, proto, port, scan_name="ALONE SCAN", threads=2500):
 
                     if not result:
                         continue
-
-                    target, real_ip, code, cdn, is_alive, line = result
-
-                    # ================= FIXED BLOCK =================
                     counter += 1
                     serial = counter
+                    target, real_ip, code, cdn, is_alive, line = result
+
+                    # ================= FIXED BLOCK ===============
 
                     with print_lock:
+                        print(f"[{serial}][{code}] {line}")
                         f.write(f"{serial}. {line}\n")
                         f.flush()
 
